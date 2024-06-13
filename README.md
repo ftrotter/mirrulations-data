@@ -1,17 +1,21 @@
 
-# Extracting Comment Sentiment from Public Comments
+# Mirrulations Data Tutorial: Extracting Comment Sentiment from Public Comments
 
 ## Overview
 
 The [regulations.gov](https://www.regulations.gov/) website allows users to view proposed rules and supporting documents for the federal rule-making process.  As of 2024, the site contains about 27 million pieces of text and binary data that is valuable for data journalism.  As a public record of the rule-making process, it contains insights into the workings of federal agencies.  
 
-[Mirrulations (MIRRor of regULATIONS.gov)](https://github.com/MoravianUniversity/mirrulations) is a system to create a mirror of the data, and all this data is available in the [mirrulations S3 bucket](https://mirrulations.s3.amazonaws.com/).  In this tutorial you will consider a single docket (proposed rule).  You will use [AWS Glue](https://aws.amazon.com/glue/) and [AWS Comprehend](https://aws.amazon.com/comprehend/) to extract the text of the public comments on this docket and perform sentiment analysis on that text.
+[Mirrulations (MIRRor of regULATIONS.gov)](https://github.com/MoravianUniversity/mirrulations) is a system to create a mirror of the data, and all this data is available in the [mirrulations S3 bucket](https://mirrulations.s3.amazonaws.com/).  In this tutorial you will consider a single docket (proposed rule).  You will use [AWS Glue](https://aws.amazon.com/glue/) and [AWS Comprehend](https://aws.amazon.com/comprehend/) to extract the text of the public comments on this docket and perform sentiment analysis on that text.  Afterward you will use [AWS Athena](https://aws.amazon.com/athena/) to download a CSV file containing the results.
 
 ## Prerequisites
 
-This tutorial assumes basic familiarity with AWS S3, AWS Glue, and AWS Athena.  Each step will provide instructions on how to configure each service and provide relevant screenshots - but detailed explanation of the configuration options is not provided.
+This tutorial assumes basic familiarity with AWS S3, AWS Glue, AWS Comprehend, and AWS Athena.  Each step will provide instructions on how to configure each service and provide relevant screenshots - but detailed explanation of the configuration options is not provided.
 
-## Tutorial Data
+Unless specified, default configuration options are assumed for all services.
+
+This tutorial will utilize \$40 to \$50 of AWS services.
+
+## Understanding the Tutorial Data
 
 In 2024, the DEA [proposed to transfer marijuana from schedule I of the Controlled Substances Act (“CSA”) to schedule III of the CSA.](https://apnews.com/article/marijuana-biden-dea-criminal-justice-pot-f833a8dae6ceb31a8658a5d65832a3b8).  The docket, [`DEA-2024-0059`](https://www.regulations.gov/docket/DEA-2024-0059) contains the proposed rule as well as the tens of thousands of public comments that were submitted.
 
@@ -61,7 +65,6 @@ Each comment file contains JSON data with the following format (extraneous field
 {
     "data": {
         "id": "DEA-2024-0059-0008",
-        "type": "comments",
         "attributes": {
             "comment": "<Comment text here>"
             "modifyDate": "2024-05-21T14:17:51Z",
@@ -70,37 +73,63 @@ Each comment file contains JSON data with the following format (extraneous field
 }
 ```
 
-### AWS S3 Bucket
+## Create an IAM Role
 
-While the data will be pulled from the `mirrulations` S3 bucket, Glue and Athena use S3 to store results.  In this step you will create a bucket to hold these results.
+To run the Glue job we have to specify an IAM role with sufficient permissions to access S3, Glue, and Comprehend.
+
+* Create an IAM Role using Glue as the AWS service use case
+* Add the permissions `AmazonS3FullAccess`, `AWSGlueConsoleFullAccess`, and `ComprehendFullAccess`
+* Name the Role `DEA-2024-0059-S3-Glue-Comprehend`
+
+  ![IAM Role Creation](graphics/IAMRole.png)
+
+
+NOTE: For production workflows, you should restrict access to these services to comply with the [ principle of least privilege](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege).
+
+## Create an AWS S3 Bucket to Hold Results
+
+We will pull the data from the `mirrulations` S3 bucket, but we need a separate bucket where Glue and Athena can store results.  In this step you will create a bucket to hold this data.
 
 * In S3, create a bucket to hold Glue and Athena results.  Remember, bucket names are globally unique, so we recommend using something like your lastname followed by `dea-2024-0059` (the docket ID).
 
+  ![create S3 bucket](graphics/createS3bucket.png)
+* In the bucket create two folders, `Glue` and `Athena`
 
-### AWS Glue Database
+  ![create S3 folders](graphics/createS3folders.png)
+
+## Set up an AWS Glue Database
 
 We will store our results in an AWS Glue Database so we can access it using AWS Athena.
 
 * In the AWS Glue Dashboard under "Data Catalog" select "Databases" and then click "Add database."
-  * Name the database "mirrulations" and leave all other options their default value.
+* Name the database "mirrulations" and leave all other options their default value.
 
-## AWS Glue ETL
+  ![Create Athena Database](graphics/glueCreateDatabase.png)
+
+## Set up the AWS Glue ETL Job
 
 We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, transform that data into a table containing the comment/sentiment analysis, and store the result in a database that AWS Athena can query.
 
 * In the AWS Glue dashboard under "ETL Jobs" select "Visual ETL" and then click "Visual ETL" to create a new job.  Name the job "DEA-2024-0059."
+* Click on "Job Details" and set the IAM Role to `DEA-2024-0059-S3-Glue-Comprehend`.
 
-* In the "Add Nodes" panel under "Sources," add an "Amazon S3" node
+  ![Glue Set IAM Role](graphics/glueSetIAMRole.png)
+
+
+## Adding Nodes to the AWS Glue ETL Job
+
+* Click on the "Visual" tab to return to the editor.
+* Click the "+" to open the "Add Nodes" panel, and under "Sources," add an "Amazon S3" node.
 
   ![Amazon S3 Node](graphics/s3source.png)
 
-* Configure the node to use the data from the `mirrulations` bucket
+* Click on the node and configure it to use the data from the `mirrulations` bucket
 
+  * Set the S3 URL to `s3://mirrulations/DEA/DEA-2024-0059/text-DEA-2024-0059/comments`.
+  
+  * Set the "Data Format" to "JSON."
   ![S3 Node Configuration](graphics/s3sourceConfiguration.png)
   
-  Set the S3 URL to `s3://mirrulations/DEA/DEA-2024-0059/text-DEA-2024-0059/comments`.
-  
-  Set the "Data Format" to "JSON."
 
 * Add a "Change Schema" transform node
 
@@ -118,7 +147,7 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
 
   ![Rename comment ID](graphics/RenameCommentIDConfig.png)
   
-* Add similar "RenameField" nodes for the Comment and Modify Date
+* Add two additional "RenameField" nodes for the Comment and Modify Date
 
   * Rename `data.attributes.comment` to be `comment`
   * Rename `data.attributes.modifyDate` to be `modifyDate`
@@ -127,7 +156,7 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
 
   ![Custom Transform](graphics/CustomTransform.png)
   
-* Name the node "HTMLtoText" and add the following as the "Code Block":
+* Name the node "HTMLtoText" and add the following as the "Code Block".    This code uses Python's built-in `HTMLParser` to remove any HTML tags, leaving us with just the text of the comment:
 
   ```
   def HTMLToText (glueContext, dfc) -> DynamicFrameCollection:
@@ -154,8 +183,6 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
       dyf_filtered = DynamicFrame.fromDF(df_filtered, glueContext, "html_to_text")
       return(DynamicFrameCollection({"CustomTransform0": dyf_filtered}, glueContext))
   ```      
-
-  This code uses Python's built-in `HTMLParser` to remove any HTML tags, leaving us with just the text of the comment.
   
 * Add a "SelectFromCollection" transform:
 
@@ -169,7 +196,7 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
 
   ![Custom Transform](graphics/CustomTransform.png)
   
-* Name the node "Sentiment Analysis" and add the following as the "Code Block":
+* Name the node "Sentiment Analysis" and add the following as the "Code Block".  This code takes the first 5000 characters of the comment and uses AWS Comprehend to determine the sentiment (positive, negative, or neutral) of the text:
  
   ```
   def SentimentAnalysis (glueContext, dfc) -> DynamicFrameCollection:
@@ -215,6 +242,7 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
   * Database: `mirrulations`
   * Table name: `comment_sentiment`
 
+  ![Glue Save to S3](graphics/glueSaveToS3.png)
 
 ## Run Your ETL Job
 
@@ -231,13 +259,10 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
 
   ![Glue Tables](graphics/glueTables.png)
   
-* At the top of the Athena page select "FIXME" to configure where Athena stores results.
+* At the top of the Athena page select "Edit settings" to configure where Athena stores results.  In the page that opens, navigate to the "Athena" folder in the S3 bucket you created.
 
   ![Athena Storage](graphics/configureAthenaStorage.png)
-  
-* In the page that opens, navigate to the "Athena" folder in the S3 bucket you created.
 
-  ![S3 Storage in Athena](graphics/athenaS3.png)
   
 * Click on "Run Query" to generate 10 results
 
@@ -251,6 +276,10 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
 
   ![athenaExportResults.png](graphics/athenaExportResults.png)
 
+
+## Conclusion
+
+Congratulations!  You have now extracted all the comments from `DEA-2024-0059`, determined whether the sentiment is positive, negative, or neutral, and exported a CSV dataset that you can use for further student of public comment on this issue.
 
 ## References
 
