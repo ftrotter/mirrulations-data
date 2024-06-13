@@ -92,11 +92,11 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
 
 * In the "Add Nodes" panel under "Sources," add an "Amazon S3" node
 
-  ![Amazon S3 Node](s3source.png)
+  ![Amazon S3 Node](graphics/s3source.png)
 
 * Configure the node to use the data from the `mirrulations` bucket
 
-  ![S3 Node Configuration](s3sourceConfiguration.png)
+  ![S3 Node Configuration](graphics/s3sourceConfiguration.png)
   
   Set the S3 URL to `s3://mirrulations/DEA/DEA-2024-0059/text-DEA-2024-0059/comments`.
   
@@ -104,19 +104,19 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
 
 * Add a "Change Schema" transform node
 
-  ![Change Schema](ChangeSchema.png)
+  ![Change Schema](graphics/ChangeSchema.png)
 
 * Configure this node to remove all nodes *except* `data.id`, `data.attributes.comment`, and `data.attributes.modifydate`.
 
-  ![Change Schema Configuration](ChangeSchemaConfiguration.png)
+  ![Change Schema Configuration](graphics/ChangeSchemaConfiguration.png)
 
 * Add a "RenameField" transform node:
 
-  ![RenameField](RenameField.png)
+  ![RenameField](graphics/RenameField.png)
   
 * Configure this node to change `data.id` to `commentID`
 
-  ![Rename comment ID](RenameCommentIDConfig.png)
+  ![Rename comment ID](graphics/RenameCommentIDConfig.png)
   
 * Add similar "RenameField" nodes for the Comment and Modify Date
 
@@ -125,7 +125,7 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
   
 * Add a "Custom code" transform:
 
-  ![Custom Transform](CustomTransform.png)
+  ![Custom Transform](graphics/CustomTransform.png)
   
 * Name the node "HTMLtoText" and add the following as the "Code Block":
 
@@ -159,15 +159,15 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
   
 * Add a "SelectFromCollection" transform:
 
-  ![SelectFromCollection](SelectFromCollection.png)
+  ![SelectFromCollection](graphics/SelectFromCollection.png)
   
 * Use the default configuration for this node:
 
-  ![Select HTML](SelectConfig.png)
+  ![Select HTML](graphics/SelectConfig.png)
   
 * Add a "Custom code" transform:
 
-  ![Custom Transform](CustomTransform.png)
+  ![Custom Transform](graphics/CustomTransform.png)
   
 * Name the node "Sentiment Analysis" and add the following as the "Code Block":
  
@@ -195,16 +195,16 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
 
 * Add a "SelectFromCollection" transform:
 
-  ![SelectFromCollection](SelectFromCollection.png)
+  ![SelectFromCollection](graphics/SelectFromCollection.png)
   
 * Use the default configuration for this node:
 
-  ![Select Sentiment](SelectConfig.png)
+  ![Select Sentiment](graphics/SelectConfig.png)
   
 
 * Add a "S3 bucket" from the "Targets" menu
 
-  ![To S3](toS3.png)
+  ![To S3](graphics/toS3.png)
   
 * Configure this node to save the data as JSON in your S3 bucket:
 
@@ -222,26 +222,26 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
 * Click "Run Details" in the green bar at the top of the window to see the progress.
 * Wait until the "Run Status" is "Complete" before continuing to the next step (5 to 10 minutes).
 
-  ![Run Job](runJob.png)
+  ![Run Job](graphics/runJob.png)
 
 ## View the Data
 
 * In the AWS Glue dashboard under "Data Catalog" select "Tables"
 * In the row for `comment_seniment` select "Table data."  Select "Proceed" when prompted to go to Athena.
 
-  ![Glue Tables](glueTables.png)
+  ![Glue Tables](graphics/glueTables.png)
   
 * At the top of the Athena page select "FIXME" to configure where Athena stores results.
 
-  ![Athena Storage](configureAthenaStorage.png)
+  ![Athena Storage](graphics/configureAthenaStorage.png)
   
 * In the page that opens, navigate to the "Athena" folder in the S3 bucket you created.
 
-  ![S3 Storage in Athena](athenaS3.png)
+  ![S3 Storage in Athena](graphics/athenaS3.png)
   
 * Click on "Run Query" to generate 10 results
 
-  ![athenaResults](athenaResults.png)
+  ![athenaResults](graphics/athenaResults.png)
 
 
 ## Export Results to CSV
@@ -249,7 +249,7 @@ We will use AWS Glue to extract the comments from the `DEA-2024-0059` docket, tr
 * Remove `limit 10` from the end of the query and click "Run again"
 * Click on "Download results" to download a CSV file containing `commentId`, `comment`, `modifydate`, and `sentiment`.
 
-  ![athenaExportResults.png](athenaExportResults.png)
+  ![athenaExportResults.png](graphics/athenaExportResults.png)
 
 
 ## References
