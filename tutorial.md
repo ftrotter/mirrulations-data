@@ -16,7 +16,7 @@ This tutorial assumes basic familiarity with AWS S3, AWS Glue, and AWS Athena.  
 In 2024, the DEA [proposed to transfer marijuana from schedule I of the Controlled Substances Act (“CSA”) to schedule III of the CSA.](https://apnews.com/article/marijuana-biden-dea-criminal-justice-pot-f833a8dae6ceb31a8658a5d65832a3b8).  The docket, [`DEA-2024-0059`](https://www.regulations.gov/docket/DEA-2024-0059) contains the proposed rule as well as the tens of thousands of public comments that were submitted.
 
 
-The `mirrulations` data is stored in a [hierarchical structure](https://github.com/MoravianUniversity/mirrulations/blob/main/docs/structure.md):
+The `mirrulations` data is stored in a [hierarchical structure](structure.md):
 
 ```
 <agency>
@@ -68,8 +68,6 @@ Each comment file contains JSON data with the following format (extraneous field
         }
     }
 }
-
-
 ```
 
 ### AWS S3 Bucket
