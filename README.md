@@ -77,13 +77,20 @@ Each comment file contains JSON data with the following format (extraneous field
 
 To run the Glue job we have to specify an IAM role with sufficient permissions to access S3, Glue, and Comprehend.
 
-* Create an IAM Role using Glue as the AWS service use case
-* Add the permissions `AmazonS3FullAccess`, `AWSGlueConsoleFullAccess`, and `ComprehendFullAccess`
-* Name the Role `DEA-2024-0059-S3-Glue-Comprehend`
+* Create an IAM Role using Glue as the AWS service use case.
+    * On the Trusted Entity Type page choose "AWS Service" and then select "Glue" from the "Service or Use Case" chooser.     
+    * On the "Add permissions" step choose the following three options.
+        * `AmazonS3FullAccess`
+        * `AWSGlueConsoleFullAccess`
+        * `ComprehendFullAccess`
+        * `ComprehendMedicalFullAccess`
+    * Fill out Name, review, and create as demonstrated here: 
+    * Name the Role `DEA-2024-0059-S3-Glue-Comprehend`
 
   ![IAM Role Creation](graphics/IAMRole.png)
 
-
+    * There is no need to add tags for this tutorial to work.
+  
 NOTE: For production workflows, you should restrict access to these services to comply with the [ principle of least privilege](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege).
 
 ## Create an AWS S3 Bucket to Hold Results
